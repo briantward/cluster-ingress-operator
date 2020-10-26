@@ -319,6 +319,34 @@ func desiredRouterDeployment(ci *operatorv1.IngressController, ingressController
 	volumes = append(volumes, certsVolume)
 	routerVolumeMounts = append(routerVolumeMounts, certsVolumeMount)
 
+	if ci.Name != "default" {
+		haproxyTemplateConfigMapName := fmt.Sprintf("haproxy-config-template-%s", ci.Name)
+		haproxyTemplateVolumeName := "haproxy-config-template"
+		haproxyTemplateVolumeMountPath := "/var/lib/haproxy/conf/haproxy-config.template"
+		haproxyTemplateVolumeSubPath := "haproxy-config.template"
+
+		haproxyTemplateVolume := corev1.Volume{
+			Name: haproxyTemplateVolumeName,
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: haproxyTemplateConfigMapName,
+					},
+				},
+			},
+		}
+
+		haproxyTemplateVolumeMount := corev1.VolumeMount{
+			Name:      haproxyTemplateVolumeName,
+			MountPath: haproxyTemplateVolumeMountPath,
+			SubPath:   haproxyTemplateVolumeSubPath,
+			ReadOnly:  true,
+		}
+
+		volumes = append(volumes, haproxyTemplateVolume)
+		routerVolumeMounts = append(routerVolumeMounts, haproxyTemplateVolumeMount)
+	}
+
 	env = append(env, corev1.EnvVar{Name: "ROUTER_METRICS_TYPE", Value: "haproxy"})
 	env = append(env, corev1.EnvVar{Name: "ROUTER_METRICS_TLS_CERT_FILE", Value: filepath.Join(certsVolumeMountPath, "tls.crt")})
 	env = append(env, corev1.EnvVar{Name: "ROUTER_METRICS_TLS_KEY_FILE", Value: filepath.Join(certsVolumeMountPath, "tls.key")})
